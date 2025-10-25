@@ -65,15 +65,27 @@ app.post('/song', async (req, res) => {
         }
 
         console.log('Making OpenAI API request...'); // Debug log
-        const imageAnalysisPrompt = `Analyze these images and describe their collective mood, aesthetic, and emotional atmosphere. 
-        Consider colors, subjects, lighting, and overall vibe. Based on this, suggest a music genre and specific songs that would match this vibe.
-        Format your response as JSON with the following structure:
-        {
-            "mood": "describe the overall mood in 2-3 words",
-            "description": "2-3 sentences about the visual aesthetic and atmosphere",
-            "genre": "suggested music genre",
-            "songSuggestions": ["Artist - Song", "Artist - Song", "Artist - Song"]
-        }`;
+        const imageAnalysisPrompt = `Analyze the given image and return only JSON describing its vibe.
+          Fields:
+          - aesthetic: short label (e.g., cottagecore, minimalism, streetwear)
+          - mood: comma-separated adjectives
+          - spotify_params: 
+            - valence (0–1)
+            - energy (0–1)
+            - danceability (0–1)
+            - tempo_range [min, max] in BPM
+
+          Return ONLY valid JSON in this format:
+          {
+            "aesthetic": "",
+            "mood": "",
+            "spotify_params": {
+              "valence": 0,
+              "energy": 0,
+              "danceability": 0,
+              "tempo_range": [0, 0]
+            }
+          }`;
 
         const response = await openai.chat.completions.create({
             model: "gpt-4o-mini",
