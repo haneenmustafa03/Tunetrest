@@ -86,10 +86,14 @@ app.post("/song", async (req, res) => {
     });
 
     console.log("Received OpenAI response.");
-    const clean = response.choices[0].message.content
-      .replace(/```json\\n?/, "")
-      .replace(/```$/, "")
-      .trim();
+    let clean = response.choices[0].message.content.trim();
+
+    // Remove any Markdown code fences like ```json ... ```
+    clean = clean.replace(/```json\s*/i, "").replace(/```$/, "").trim();
+
+    // Extra safety: if the model wrapped it in backticks or stray characters
+    if (clean.startsWith("```")) clean = clean.slice(3).trim();
+    if (clean.endsWith("```")) clean = clean.slice(0, -3).trim();
 
     const analysis = JSON.parse(clean);
     const rec = analysis.recommended_song;
