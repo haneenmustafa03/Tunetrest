@@ -72,11 +72,7 @@ function App() {
         </div>
 
         {!results ? (
-<<<<<<< Updated upstream
           <div className="rounded-2xl p-6 shadow-2xl max-w-2xl mx-auto">
-=======
-          <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-8 shadow-2xl">
->>>>>>> Stashed changes
             <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
               <Link className="w-6 h-6" />
               Paste Your Image URLs
