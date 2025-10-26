@@ -57,7 +57,7 @@ app.post("/song", async (req, res) => {
     Fields:
     - aesthetic: short label (e.g., cottagecore, minimalism, streetwear)
     - mood: comma-separated adjectives
-    - recommended_song: suggest a song that fits the vibe
+    - recommended_song: suggest a trending song that fits the vibe
       - song_name
       - artist
     Return ONLY valid JSON:
