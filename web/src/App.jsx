@@ -118,7 +118,7 @@ function App() {
                     value={url}
                     onChange={(e) => handleUrlChange(index, e.target.value)}
                     placeholder={`Image URL ${index + 1}`}
-                    className="w-full px-4 py-3 bg-gray-800 border-2 border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-pink-400 transition"
+                    className="w-full px-4 py-3 bg-gray-800 border-2 border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-400 transition"
                   />
                   {url && (
                     <img
@@ -134,8 +134,8 @@ function App() {
 
             {/* File Upload */}
             <div className="mb-6">
-              <label className="flex flex-col items-center justify-center w-full p-4 border-2 border-dashed border-white/20 rounded-lg cursor-pointer hover:border-pink-400 transition">
-                <ImagePlus className="w-8 h-8 text-pink-300 mb-2" />
+              <label className="flex flex-col items-center justify-center w-full p-4 border-2 border-dashed border-white/20 rounded-lg cursor-pointer hover:border-blue-400 transition">
+                <ImagePlus className="w-8 h-8 text-blue-400 mb-2" />
                 <span className="text-gray-300">
                   Click to upload images (JPG, PNG, WEBP)
                 </span>
@@ -184,7 +184,7 @@ function App() {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 text-white font-bold py-4 rounded-lg transition text-lg shadow-lg disabled:opacity-50 hover:from-pink-500 hover:to-indigo-500"
+              className="w-full bg-blue-400 text-white font-bold py-4 rounded-lg transition text-lg shadow-lg disabled:opacity-50 hover:bg-blue-500"
             >
               {loading ? "Analyzing..." : "Get My Playlist"}
             </button>
