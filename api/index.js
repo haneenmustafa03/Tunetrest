@@ -147,15 +147,72 @@ app.listen(PORT, () => {
     console.log('OpenAI API Key configured:', !!process.env.OPENAI_API_KEY); // Debug log
 });
 
-async function getSpotifyAccessToken() {
-  const res = await fetch("https://accounts.spotify.com/api/token",{
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: "Basic " + Buffer.from(
-                `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
-            ).toString("base64")
+app.get('/spotify-token', async (req, res) => { // basically spotify authentication service 
+  try {
+    const resToken = await fetch("https://accounts.spotify.com/api/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization:
+          "Basic " +
+          Buffer.from(
+            `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
+          ).toString("base64"),
+      },
+      body: "grant_type=client_credentials",
+    });
+
+    const data = await resToken.json();
+    console.log("spotify token response:", data);
+
+    if (!data.access_token) {
+      console.error("Spotify auth failed:", data);
+      return res.status(400).json({ error: "Failed to get Spotify token", details: data });
+    }
+
+    console.log("✅ Spotify token acquired:", data.access_token.substring(0, 20) + "...");
+    res.json({ access_token: data.access_token });
+  } catch (error) {
+    console.error("Spotify token error:", error);
+    res.status(500).json({ error: "Failed to get Spotify token", details: error.message });
+  }
+});
+
+
+// hard coded test to see if we can successfully search spotify with a hardcoded query using our token
+app.get("/spotify-test", async (req, res) => {
+  try {
+    // Step 1: Get access token from your helper
+    const tokenRes = await fetch("http://localhost:8787/spotify-token");
+    const { access_token } = await tokenRes.json();
+
+    if (!access_token) {
+      return res.status(500).json({ error: "Failed to get Spotify token" });
+    }
+
+    // Step 2: Make a test search query to Spotify
+    const searchQuery = "chill acoustic"; // temporary, later we’ll base this on OpenAI output
+    console.log("Getting Spotify token with client ID:", process.env.SPOTIFY_CLIENT_ID);
+    const spotifyRes = await fetch(
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track&limit=5`,
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
         },
-      body: "grant_type=client_credentials"
-  });
-}
+      }
+    );
+
+    if (!spotifyRes.ok) {
+      const errText = await spotifyRes.text();
+      throw new Error(`Spotify API error: ${spotifyRes.status} ${errText}`);
+    }
+
+    const data = await spotifyRes.json();
+    console.log("Spotify token response data:", data);
+    return data;
+  } catch (err) {
+    console.error("Spotify test error:", err);
+    res.status(500).json({ error: "Failed to fetch Spotify test tracks", details: err.message });
+  }
+});
+
