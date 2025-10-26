@@ -67,18 +67,18 @@ function App() {
         <div className="text-center mb-12">
           <h1 className="text-6xl font-extrabold text-white">Tunetrest</h1>
           <p className="text-xl text-gray-200">
-            Discover playlists through your images
+            Discover playlists through images
           </p>
         </div>
 
         {!results ? (
-          <div className="bg-white/30 backdrop-blur-lg rounded-2xl p-8 shadow-2xl">
+          <div className="rounded-2xl p-6 shadow-2xl max-w-2xl mx-auto">
             <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
               <Link className="w-6 h-6" />
               Paste Your Image URLs
             </h2>
 
-            <div className="space-y-4 mb-8">
+            <div className="space-y-3 mb-8">
               {imageUrls.map((url, index) => (
                 <div key={index}>
                   <input
@@ -86,7 +86,7 @@ function App() {
                     value={url}
                     onChange={(e) => handleUrlChange(index, e.target.value)}
                     placeholder={`Image URL ${index + 1}`}
-                    className="w-full px-4 py-3 bg-gray-300 border-2 border-white rounded-lg text-white placeholder-gray-300 focus:outline-none focus:border-pink-400 transition"
+                    className="w-full px-4 py-3 bg-white border-2 border-black rounded-lg text-white placeholder-gray-300 focus:outline-none focus:border-white transition"
                   />
                   {url && (
                     <img
@@ -103,7 +103,7 @@ function App() {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full bg-white text-rose-400 font-bold py-4 rounded-lg transition text-lg shadow-lg disabled:opacity-50"
+              className="w-full bg-white text-black font-bold py-4 rounded-lg transition text-lg shadow-lg disabled:opacity-50"
             >
               {loading ? "Analyzing..." : "Get My Playlist"}
             </button>
