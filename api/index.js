@@ -69,21 +69,17 @@ app.post('/song', async (req, res) => {
           Fields:
           - aesthetic: short label (e.g., cottagecore, minimalism, streetwear)
           - mood: comma-separated adjectives
-          - spotify_params: 
-            - valence (0–1)
-            - energy (0–1)
-            - danceability (0–1)
-            - tempo_range [min, max] in BPM
+          - recommended_song: suggest a song that fits the vibe
+            - song_name: the song title
+            - artist: the artist name
 
           Return ONLY valid JSON in this format:
           {
             "aesthetic": "",
             "mood": "",
-            "spotify_params": {
-              "valence": 0,
-              "energy": 0,
-              "danceability": 0,
-              "tempo_range": [0, 0]
+            "recommended_song": {
+              "song_name": "",
+              "artist": ""
             }
           }`;
 
@@ -115,22 +111,27 @@ app.post('/song', async (req, res) => {
             .trim();                   // Remove any extra whitespace
 
         const analysis = JSON.parse(cleanResponse);
+        const recommendedSong = analysis.recommended_song;
+        if (recommendedSong?.song_name && recommendedSong?.artist) {
+          const track = await searchSpotifyTrack(recommendedSong.song_name, recommendedSong.artist);
+          if (track) {
+            analysis.recommended_song = {
+              name: track.name,
+              artist: track.artists.map(a => a.name).join(", "),
+              preview_url: track.preview_url,
+              spotify_url: track.external_urls.spotify,
+              album_image: track.album.images[0]?.url
+            };
+          }
+        }
+
         res.json(analysis);
 
-    } catch (error) {
-        console.error('Detailed error:', {
-            message: error.message,
-            stack: error.stack,
-            response: error.response?.data // For axios errors
-        });
-        
-        res.status(500).json({ 
-            error: 'Failed to analyze images',
-            details: error.message,
-            type: error.constructor.name
-        });
-    }
-});
+      } catch (error) {
+        console.error('Detailed error:', error);
+        res.status(500).json({ error: 'Failed to analyze images', details: error.message });
+      }
+    });
 
 // Basic error handler
 app.use((err, req, res, next) => {
@@ -147,15 +148,67 @@ app.listen(PORT, () => {
     console.log('OpenAI API Key configured:', !!process.env.OPENAI_API_KEY); // Debug log
 });
 
-async function getSpotifyAccessToken() {
-  const res = await fetch("https://accounts.spotify.com/api/token",{
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: "Basic " + Buffer.from(
-                `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
-            ).toString("base64")
-        },
-      body: "grant_type=client_credentials"
-  });
+app.get('/spotify-token', async (req, res) => { // basically spotify authentication service 
+  try {
+    const resToken = await fetch("https://accounts.spotify.com/api/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization:
+          "Basic " +
+          Buffer.from(
+            `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
+          ).toString("base64"),
+      },
+      body: "grant_type=client_credentials",
+    });
+
+    const data = await resToken.json();
+    console.log("spotify token response:", data);
+
+    if (!data.access_token) {
+      console.error("Spotify auth failed:", data);
+      return res.status(400).json({ error: "Failed to get Spotify token", details: data });
+    }
+
+    console.log("✅ Spotify token acquired:", data.access_token.substring(0, 20) + "...");
+    res.json({ access_token: data.access_token });
+  } catch (error) {
+    console.error("Spotify token error:", error);
+    res.status(500).json({ error: "Failed to get Spotify token", details: error.message });
+  }
+});
+
+// Helper: search Spotify for a track by name and artist
+async function searchSpotifyTrack(songName, artist) {
+    try {
+        // Step 1: Get Spotify token
+        const tokenRes = await fetch("http://localhost:8787/spotify-token");
+        const { access_token } = await tokenRes.json();
+
+        if (!access_token) throw new Error("Failed to get Spotify token");
+
+        // Step 2: Search Spotify for the track
+        const query = `track:${songName} artist:${artist}`;
+        const spotifyRes = await fetch(
+            `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=1`,
+            {
+                headers: {
+                    Authorization: `Bearer ${access_token}`,
+                },
+            }
+        );
+
+        if (!spotifyRes.ok) {
+            const errText = await spotifyRes.text();
+            throw new Error(`Spotify API error: ${spotifyRes.status} ${errText}`);
+        }
+
+        const data = await spotifyRes.json();
+        return data.tracks.items[0]; // return first match
+    } catch (err) {
+        console.error("Spotify search error:", err);
+        return null;
+    }
 }
+
