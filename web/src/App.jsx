@@ -1,4 +1,5 @@
 import { useState } from "react";
+import axios from "axios";
 import { Link } from "lucide-react";
 import Lottie from "lottie-react";
 import animationData from "./assets/SoundAnimation.json";
@@ -20,6 +21,7 @@ function App() {
   const [imageUrls, setImageUrls] = useState(["", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
+  const [error, setError] = useState(null);
 
   const handleUrlChange = (index, value) => {
     const newUrls = [...imageUrls];
@@ -30,24 +32,28 @@ function App() {
   const handleSubmit = async () => {
     const validUrls = imageUrls.filter((url) => url.trim() !== "");
     if (validUrls.length === 0) {
-      alert("Please enter at least one image URL");
+      setError("Please enter at least one image URL");
       return;
     }
 
     setLoading(true);
+    setResults(null);
+    setError(null);
 
     try {
-      const response = await fetch("http://localhost:5000/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ images: validUrls }),
+      const res = await axios.post("http://localhost:8787/song", {
+        imageUrls: validUrls,
       });
 
-      const data = await response.json();
-      setResults(data);
-    } catch (error) {
-      console.error("Error:", error);
-      alert("Failed to fetch recommendations. Make sure backend is running!");
+      console.log("Analysis result:", res.data);
+      setResults(res.data);
+    } catch (err) {
+      console.error("Request failed:", err);
+      if (err.response) {
+        setError(err.response.data.error || "Server error occurred.");
+      } else {
+        setError("Could not connect to backend. Is it running on port 8787?");
+      }
     } finally {
       setLoading(false);
     }
@@ -56,6 +62,7 @@ function App() {
   const handleReset = () => {
     setImageUrls(["", "", "", "", ""]);
     setResults(null);
+    setError(null);
   };
 
   return (
@@ -72,13 +79,13 @@ function App() {
         </div>
 
         {!results ? (
-          <div className="rounded-2xl p-6 shadow-2xl max-w-2xl mx-auto">
+          <div className="rounded-2xl p-6 shadow-2xl max-w-2xl mx-auto bg-gray-900/60 backdrop-blur-md">
             <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
               <Link className="w-6 h-6" />
               Paste Your Image URLs
             </h2>
 
-            <div className="space-y-3 mb-8">
+            <div className="space-y-3 mb-6">
               {imageUrls.map((url, index) => (
                 <div key={index}>
                   <input
@@ -86,7 +93,7 @@ function App() {
                     value={url}
                     onChange={(e) => handleUrlChange(index, e.target.value)}
                     placeholder={`Image URL ${index + 1}`}
-                    className="w-full px-4 py-3 bg-white border-2 border-black rounded-lg text-white placeholder-gray-300 focus:outline-none focus:border-white transition"
+                    className="w-full px-4 py-3 bg-gray-800 border-2 border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-white transition"
                   />
                   {url && (
                     <img
@@ -100,6 +107,13 @@ function App() {
               ))}
             </div>
 
+            {/* Error message */}
+            {error && (
+              <div className="text-red-400 text-sm mb-4 bg-red-900/20 p-2 rounded-lg">
+                ⚠️ {error}
+              </div>
+            )}
+
             <button
               onClick={handleSubmit}
               disabled={loading}
@@ -111,35 +125,51 @@ function App() {
         ) : (
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl">
             <h2 className="text-3xl font-bold text-white mb-6">
-              Your Personalized Playlist
+              Your Personalized Song Recommendation
             </h2>
 
-            <div className="space-y-3 mb-8">
-              {results.songs?.map((song, index) => (
-                <div
-                  key={index}
-                  className="bg-white/20 rounded-lg p-4 hover:bg-white/30 transition"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl font-bold text-pink-400">
-                      {index + 1}
-                    </span>
-                    <div>
-                      <p className="text-lg font-semibold text-white">
-                        {song.name || song}
-                      </p>
-                      {song.artist && (
-                        <p className="text-sm text-gray-300">{song.artist}</p>
-                      )}
-                    </div>
-                  </div>
+            <div className="bg-white/20 rounded-lg p-6 text-white space-y-2">
+              <p>
+                <strong>Aesthetic:</strong> {results.aesthetic}
+              </p>
+              <p>
+                <strong>Mood:</strong> {results.mood}
+              </p>
+
+              {results.recommended_song && (
+                <div className="mt-4">
+                  <p className="text-lg font-semibold text-pink-400">
+                    🎵 {results.recommended_song.name}
+                  </p>
+                  <p className="text-sm text-gray-300">
+                    {results.recommended_song.artist}
+                  </p>
+
+                  {results.recommended_song.album_image && (
+                    <img
+                      src={results.recommended_song.album_image}
+                      alt="Album cover"
+                      className="mt-4 w-32 h-32 rounded-lg"
+                    />
+                  )}
+
+                  {results.recommended_song.spotify_url && (
+                    <a
+                      href={results.recommended_song.spotify_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block mt-3 bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition"
+                    >
+                      Open on Spotify
+                    </a>
+                  )}
                 </div>
-              ))}
+              )}
             </div>
 
             <button
               onClick={handleReset}
-              className="w-full bg-white/20 text-white font-bold py-4 rounded-lg hover:bg-white/30 transition text-lg"
+              className="w-full mt-8 bg-white/20 text-white font-bold py-4 rounded-lg hover:bg-white/30 transition text-lg"
             >
               Try Again
             </button>
